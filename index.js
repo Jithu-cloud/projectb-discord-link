@@ -51,7 +51,7 @@ app.get("/callback", async (req, res) => {
                 },
                 body: new URLSearchParams({
                     client_id: process.env.CLIENT_ID,
-                    client_secret: process.env.CLIENT_SECRET,
+                    client_secret: process.env.DISCORD_CLIENT_SECRET,
                     grant_type: "authorization_code",
                     code: code,
                     redirect_uri: process.env.REDIRECT_URI
