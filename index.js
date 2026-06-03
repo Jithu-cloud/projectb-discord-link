@@ -16,6 +16,11 @@ const {
 
 const { createClient } = require("@supabase/supabase-js");
 
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+);
+
 app.get("/", (req, res) => {
     res.send("ProjectB Bot Alive");
 });
@@ -79,20 +84,21 @@ app.get("/callback", async (req, res) => {
         const user = await userResponse.json();
 
         console.log("USER DATA:", user);
-        await supabase
-    .from("discord_links")
-    .upsert({
-        roblox_user_id: robloxId,
-        discord_user_id: user.id,
-        discord_username: user.username
-    });
 
-console.log(
-    "LINK SAVED:",
-    robloxId,
-    user.id,
-    user.username
-);
+        await supabase
+            .from("discord_links")
+            .upsert({
+                roblox_user_id: robloxId,
+                discord_user_id: user.id,
+                discord_username: user.username
+            });
+
+        console.log(
+            "LINK SAVED:",
+            robloxId,
+            user.id,
+            user.username
+        );
 
         res.send(`
             <h1>Discord Linked ✅</h1>
@@ -115,11 +121,6 @@ app.listen(process.env.PORT || 3000, () => {
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
 });
-
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
-);
 
 const commands = [
     new SlashCommandBuilder()
@@ -160,9 +161,27 @@ client.on("interactionCreate", async (interaction) => {
 
             await interaction.deferReply();
 
+            const discordId = interaction.user.id;
+
+            const { data: linkData, error: linkError } = await supabase
+                .from("discord_links")
+                .select("*")
+                .eq("discord_user_id", discordId)
+                .single();
+
+            if (linkError || !linkData) {
+
+                return interaction.editReply(
+                    "❌ Discord account not linked.\nUse CONNECT DISCORD first."
+                );
+            }
+
+            const robloxId = linkData.roblox_user_id;
+
             const { data, error } = await supabase
                 .from("creatures")
-                .select("*");
+                .select("*")
+                .eq("userid", String(robloxId));
 
             if (error) {
 
@@ -178,7 +197,7 @@ client.on("interactionCreate", async (interaction) => {
                 );
             }
 
-            let msg = "📦 Collection\n\n";
+            let msg = "📦 Your Collection\n\n";
 
             data.forEach(row => {
                 msg += `• ${row.creaturename}\n`;
