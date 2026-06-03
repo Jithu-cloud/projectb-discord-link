@@ -22,12 +22,15 @@ app.get("/", (req, res) => {
 
 app.get("/login", (req, res) => {
 
+    const robloxId = req.query.robloxId;
+
     const url =
         "https://discord.com/api/oauth2/authorize" +
         "?client_id=" + process.env.CLIENT_ID +
         "&redirect_uri=" + encodeURIComponent(process.env.REDIRECT_URI) +
         "&response_type=code" +
-        "&scope=identify";
+        "&scope=identify" +
+        "&state=" + robloxId;
 
     res.redirect(url);
 });
@@ -35,6 +38,7 @@ app.get("/login", (req, res) => {
 app.get("/callback", async (req, res) => {
 
     const code = req.query.code;
+    const robloxId = req.query.state;
 
     if (!code) {
         return res.send("No code received.");
@@ -75,6 +79,20 @@ app.get("/callback", async (req, res) => {
         const user = await userResponse.json();
 
         console.log("USER DATA:", user);
+        await supabase
+    .from("discord_links")
+    .upsert({
+        roblox_user_id: robloxId,
+        discord_user_id: user.id,
+        discord_username: user.username
+    });
+
+console.log(
+    "LINK SAVED:",
+    robloxId,
+    user.id,
+    user.username
+);
 
         res.send(`
             <h1>Discord Linked ✅</h1>
