@@ -172,7 +172,7 @@ client.on("interactionCreate", async (interaction) => {
             if (linkError || !linkData) {
 
                 return interaction.editReply(
-                    "❌ Discord account not linked.\nUse CONNECT DISCORD first."
+                    "❌ **COMMAND BLOCKED**\n━━━━━━━━━━━━━━━━━━━\n> You cannot use this command because your **Discord account is not linked** to a Roblox account.\n\n🔧 **How to fix**\n> `/connect` → Link your Roblox account\n> `/tutorial` → Watch a quick video guide\n\n🛟 **Still stuck?**  Contact Support → `/support`\n\n━━━━━━━━━━━━━━━━━━━\n✨ **Connect your Roblox account and unleash the ultimate fun with MONSTER MASTER WORLD WIDE!** ✨"
                 );
             }
 
