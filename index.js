@@ -1,8 +1,10 @@
 require("dotenv").config();
 
-const express = require("express");const app = express();
+const express = require("express");
+const app = express();
 
-const fetch = (...args) =>import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const fetch = (...args) =>
+    import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const {Client,GatewayIntentBits,REST,Routes,SlashCommandBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder} = require("discord.js");
 
@@ -10,16 +12,87 @@ const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(process.env.SUPABASE_URL,process.env.SUPABASE_KEY);
 
-// Pagination state management with auto-cleanupconst userPages = new Map();
+// Pagination state management with auto-cleanup
+const userPages = new Map();
 
-// Cleanup function for paginationfunction cleanupUserPages(userId) {setTimeout(() => {userPages.delete(userId);console.log(Cleaned up pagination for user ${userId});}, 300000); // 5 minutes}
+// Cleanup function for pagination
+function cleanupUserPages(userId) {
+    setTimeout(() => {
+        userPages.delete(userId);
+        console.log(`Cleaned up pagination for user ${userId}`);
+    }, 300000);
+}
 
-// Helper function to get Roblox username from IDasync function getRobloxUsername(robloxId) {try {const response = await fetch(https://users.roblox.com/v1/users/${robloxId});const data = await response.json();return data.name || "Unknown";} catch (err) {console.error("Failed to fetch Roblox username:", err);return "Unknown";}}
+// Helper function to get Roblox username from ID
+async function getRobloxUsername(robloxId) {
+    try {
+        const response = await fetch(
+            `https://users.roblox.com/v1/users/${robloxId}`
+        );
 
-// Helper function to validate and check code expirationasync function validateAndCheckCode(code, context) {const { data: codeData, error: codeError } =await supabase.from("link_codes").select("*").eq("code", code).single();
+        const data = await response.json();
 
-if (codeError || !codeData) {
-    return { valid: false, error: "❌ Invalid Code" };
+        return data.name || "Unknown";
+
+    } catch (err) {
+
+        console.error(
+            "Failed to fetch Roblox username:",
+            err
+        );
+
+        return "Unknown";
+    }
+}
+
+// Helper function to validate and check code expiration
+async function validateAndCheckCode(code, context) {
+
+    const {
+        data: codeData,
+        error: codeError
+    } = await supabase
+        .from("link_codes")
+        .select("*")
+        .eq("code", code)
+        .single();
+
+    if (codeError || !codeData) {
+        return {
+            valid: false,
+            error: "❌ Invalid Code"
+        };
+    }
+
+    if (
+        codeData.expires_at &&
+        new Date(codeData.expires_at) < new Date()
+    ) {
+
+        await supabase
+            .from("link_codes")
+            .update({
+                status: "EXPIRED"
+            })
+            .eq("code", code);
+
+        return {
+            valid: false,
+            error: "❌ Code Expired"
+        };
+    }
+
+    if (codeData.status !== "ACTIVE") {
+        return {
+            valid: false,
+            error: `❌ Code Status: ${codeData.status}`
+        };
+    }
+
+    return {
+        valid: true,
+        codeData
+    };
 }
 
 // Check expiration
@@ -205,9 +278,15 @@ try {
 
 });
 
-app.listen(process.env.PORT || 3000, () => {console.log("Web server running");});
+app.listen(process.env.PORT || 3000, () => {
+    console.log("Web server running");
+});
 
-const client = new Client({intents: [GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.MessageContent]});
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.MessageContent
+    ]
+});
 
 const commands = [new SlashCommandBuilder().setName("collection").setDescription("Show collection").toJSON(),
 
@@ -516,7 +595,8 @@ if (interaction.commandName === "collection") {
 
 });
 
-// Button handler for unlink and collection paginationclient.on("interactionCreate", async interaction => {
+// Button handler for unlink and collection pagination
+client.on("interactionCreate", async interaction => {
 
 if (!interaction.isButton()) return;
 
