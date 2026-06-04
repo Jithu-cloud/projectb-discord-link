@@ -172,13 +172,137 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.commandName === "connect") {
 
-        const code =
-            interaction.options.getString("code");
+    const code =
+        interaction.options.getString("code");
 
-        return interaction.reply(
-            `Checking code: ${code}`
+    await interaction.deferReply();
+
+    const discordId =
+        interaction.user.id;
+
+    // FIND CODE
+
+    const { data: codeData, error: codeError } =
+        await supabase
+            .from("link_codes")
+            .select("*")
+            .eq("code", code)
+            .single();
+
+    if (codeError || !codeData) {
+
+        return interaction.editReply(
+            "❌ Invalid Code"
         );
     }
+
+    if (codeData.status !== "ACTIVE") {
+
+        return interaction.editReply(
+            `❌ Code Status: ${codeData.status}`
+        );
+    }
+
+    // DISCORD ALREADY LINKED?
+
+    const { data: existingDiscord } =
+        await supabase
+            .from("discord_links")
+            .select("*")
+            .eq("discord_user_id", discordId)
+            .single();
+
+    if (existingDiscord) {
+
+        return interaction.editReply(
+            "❌ This Discord account is already linked."
+        );
+    }
+
+    // ROBLOX ALREADY LINKED?
+
+    const { data: existingRoblox } =
+        await supabase
+            .from("discord_links")
+            .select("*")
+            .eq(
+                "roblox_user_id",
+                codeData.roblox_user_id
+            )
+            .single();
+
+    if (existingRoblox) {
+
+        return interaction.editReply(
+            "❌ Roblox account already linked."
+        );
+    }
+
+    // CREATE LINK
+
+    const { error: linkError } =
+        await supabase
+            .from("discord_links")
+            .insert({
+
+                roblox_user_id:
+                    codeData.roblox_user_id,
+
+                discord_user_id:
+                    discordId,
+
+                discord_username:
+                    interaction.user.username,
+
+                linked_by_code:
+                    code
+            });
+
+    if (linkError) {
+
+        return interaction.editReply(
+            "❌ Link failed."
+        );
+    }
+
+    // MARK CODE USED
+
+    await supabase
+        .from("link_codes")
+        .update({
+
+            status: "USED",
+
+            used_by_discord_id:
+                discordId,
+
+            used_at:
+                new Date().toISOString()
+        })
+        .eq("code", code);
+
+    // AUDIT LOG
+
+    await supabase
+        .from("audit_logs")
+        .insert({
+
+            event_type:
+                "LINK_SUCCESS",
+
+            roblox_user_id:
+                codeData.roblox_user_id,
+
+            discord_user_id:
+                discordId,
+
+            code: code
+        });
+
+    return interaction.editReply(
+        "✅ Account Linked Successfully"
+    );
+}
 
     if (interaction.commandName === "collection") {
 
