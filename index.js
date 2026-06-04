@@ -11,7 +11,10 @@ const {
     GatewayIntentBits,
     REST,
     Routes,
-    SlashCommandBuilder
+    SlashCommandBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } = require("discord.js");
 
 const { createClient } = require("@supabase/supabase-js");
@@ -141,6 +144,11 @@ const commands = [
                 .setDescription("Your link code")
                 .setRequired(true)
         )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("unlink")
+        .setDescription("Unlink Roblox account")
         .toJSON()
 ];
 
@@ -158,7 +166,7 @@ client.once("ready", async () => {
             { body: commands }
         );
 
-        console.log("Slash command registered");
+        console.log("Slash commands registered");
 
     } catch (err) {
 
@@ -261,6 +269,44 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply("✅ Account Linked Successfully");
     }
 
+    if (interaction.commandName === "unlink") {
+
+        const discordId = interaction.user.id;
+
+        const { data: linkData } =
+            await supabase
+                .from("discord_links")
+                .select("*")
+                .eq("discord_user_id", discordId)
+                .single();
+
+        if (!linkData) {
+
+            return interaction.reply({
+                content: "❌ No linked account found.",
+                ephemeral: true
+            });
+        }
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId("unlink_yes")
+                    .setLabel("YES UNLINK")
+                    .setStyle(ButtonStyle.Danger),
+
+                new ButtonBuilder()
+                    .setCustomId("unlink_no")
+                    .setLabel("CANCEL")
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        await interaction.reply({
+            content: `Are you sure?\n\nDiscord: ${interaction.user.username}\nRoblox ID: ${linkData.roblox_user_id}`,
+            components: [row]
+        });
+    }
+
     if (interaction.commandName === "collection") {
 
         try {
@@ -315,6 +361,58 @@ client.on("interactionCreate", async (interaction) => {
                 await interaction.editReply("Something went wrong.");
             } catch {}
         }
+    }
+});
+
+// Button handler for unlink confirmation
+client.on("interactionCreate", async interaction => {
+
+    if (!interaction.isButton()) return;
+
+    if (interaction.customId === "unlink_no") {
+
+        return interaction.update({
+            content: "❌ Unlink cancelled.\nNo changes were made.",
+            components: []
+        });
+    }
+
+    if (interaction.customId === "unlink_yes") {
+
+        const discordId = interaction.user.id;
+
+        const { data: linkData } =
+            await supabase
+                .from("discord_links")
+                .select("*")
+                .eq("discord_user_id", discordId)
+                .single();
+
+        if (!linkData) {
+
+            return interaction.update({
+                content: "❌ No linked account found.",
+                components: []
+            });
+        }
+
+        await supabase
+            .from("audit_logs")
+            .insert({
+                event_type: "UNLINK_SUCCESS",
+                roblox_user_id: linkData.roblox_user_id,
+                discord_user_id: discordId
+            });
+
+        await supabase
+            .from("discord_links")
+            .delete()
+            .eq("discord_user_id", discordId);
+
+        await interaction.update({
+            content: "✅ Account Unlinked Successfully",
+            components: []
+        });
     }
 });
 
