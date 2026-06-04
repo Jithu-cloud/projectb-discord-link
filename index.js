@@ -119,7 +119,11 @@ app.listen(process.env.PORT || 3000, () => {
 });
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
 });
 
 const commands = [
@@ -248,6 +252,35 @@ client.on("interactionCreate", async (interaction) => {
             } catch {}
         }
     }
+});
+
+client.on("messageCreate", async (message) => {
+
+    if (message.author.bot) return;
+
+    if (!message.mentions.has(client.user)) return;
+
+    const content = message.content
+        .replace(`<@${client.user.id}>`, "")
+        .replace(`<@!${client.user.id}>`, "")
+        .trim();
+
+    const match =
+        content.match(/^connect\s+(.+)$/i);
+
+    if (!match) {
+
+        return message.reply(
+            "❌ Invalid format.\nUse:\nConnect PJB-XXXX-XXXX-XXXX"
+        );
+    }
+
+    const code = match[1].trim();
+
+    await message.reply(
+        `Checking code: ${code}`
+    );
+
 });
 
 client.login(process.env.DISCORD_TOKEN);
