@@ -412,7 +412,7 @@ if (!codePattern.test(code)) {
 }
 
 await message.reply(
-    `Checking code: ${code}`
+    "MESSAGE CONNECT SYSTEM NOT BUILT YET"
 );
 
 });
