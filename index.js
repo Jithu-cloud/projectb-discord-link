@@ -126,6 +126,17 @@ const commands = [
     new SlashCommandBuilder()
         .setName("collection")
         .setDescription("Show collection")
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("connect")
+        .setDescription("Link Roblox account")
+        .addStringOption(option =>
+            option
+                .setName("code")
+                .setDescription("Your link code")
+                .setRequired(true)
+        )
         .toJSON()
 ];
 
@@ -155,7 +166,16 @@ client.on("interactionCreate", async (interaction) => {
 
     if (!interaction.isChatInputCommand()) return;
 
-    if (interaction.commandName === "collection") {
+    if (interaction.commandName === "connect") {
+
+    const code =
+        interaction.options.getString("code");
+
+    await interaction.reply(
+        `Checking code: ${code}`
+    );
+
+}
 
         try {
 
