@@ -275,11 +275,21 @@ client.on("messageCreate", async (message) => {
         );
     }
 
-    const code = match[1].trim();
+  const code = match[1].trim();
 
-    await message.reply(
-        `Checking code: ${code}`
+const codePattern =
+    /^PJB-[A-Z0-9]{8}-[A-Z0-9]{8}-[A-Z0-9]{8}$/;
+
+if (!codePattern.test(code)) {
+
+    return message.reply(
+        "❌ Unauthorized Argument.\nUse:\nConnect PJB-XXXXXXXX-XXXXXXXX-XXXXXXXX"
     );
+}
+
+await message.reply(
+    `Checking code: ${code}`
+);
 
 });
 
