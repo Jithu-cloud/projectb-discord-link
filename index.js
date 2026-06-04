@@ -168,45 +168,51 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.commandName === "connect") {
 
-    const code =
-        interaction.options.getString("code");
+        const code =
+            interaction.options.getString("code");
 
-    await interaction.reply(
-        `Checking code: ${code}`
-    );
+        return interaction.reply(
+            `Checking code: ${code}`
+        );
+    }
 
-}
+    if (interaction.commandName === "collection") {
 
         try {
 
             await interaction.deferReply();
 
-            const discordId = interaction.user.id;
+            const discordId =
+                interaction.user.id;
 
-            const { data: linkData, error: linkError } = await supabase
-                .from("discord_links")
-                .select("*")
-                .eq("discord_user_id", discordId)
-                .single();
+            const { data: linkData, error: linkError } =
+                await supabase
+                    .from("discord_links")
+                    .select("*")
+                    .eq("discord_user_id", discordId)
+                    .single();
 
             if (linkError || !linkData) {
 
                 return interaction.editReply(
-                    "❌ **COMMAND BLOCKED**\n━━━━━━━━━━━━━━━━━━━\n> You cannot use this command because your **Discord account is not linked** to a Roblox account.\n\n🔧 **How to fix**\n> `/connect` → Link your Roblox account\n> `/tutorial` → Watch a quick video guide\n\n🛟 **Still stuck?**  Contact Support → `/support`\n\n━━━━━━━━━━━━━━━━━━━\n✨ **Connect your Roblox account and unleash the ultimate fun with MONSTER MASTER WORLD WIDE!** ✨"
+                    "❌ Discord account not linked."
                 );
             }
 
-            const robloxId = linkData.roblox_user_id;
+            const robloxId =
+                linkData.roblox_user_id;
 
-            const { data, error } = await supabase
-                .from("creatures")
-                .select("*")
-                .eq("userid", String(robloxId));
+            const { data, error } =
+                await supabase
+                    .from("creatures")
+                    .select("*")
+                    .eq("userid", String(robloxId));
 
             if (error) {
 
                 return interaction.editReply(
-                    "Database error: " + error.message
+                    "Database error: " +
+                    error.message
                 );
             }
 
@@ -217,10 +223,14 @@ client.on("interactionCreate", async (interaction) => {
                 );
             }
 
-            let msg = "📦 Your Collection\n\n";
+            let msg =
+                "📦 Your Collection\n\n";
 
             data.forEach(row => {
-                msg += `• ${row.creaturename}\n`;
+
+                msg +=
+                    `• ${row.creaturename}\n`;
+
             });
 
             await interaction.editReply(msg);
@@ -230,9 +240,11 @@ client.on("interactionCreate", async (interaction) => {
             console.error(err);
 
             try {
+
                 await interaction.editReply(
                     "Something went wrong."
                 );
+
             } catch {}
         }
     }
