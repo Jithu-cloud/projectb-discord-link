@@ -95,23 +95,6 @@ async function validateAndCheckCode(code, context) {
     };
 }
 
-// Check expiration
-if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
-    await supabase
-        .from("link_codes")
-        .update({ status: "EXPIRED" })
-        .eq("code", code);
-    return { valid: false, error: "❌ Code Expired" };
-}
-
-if (codeData.status !== "ACTIVE") {
-    return { valid: false, error: `❌ Code Status: ${codeData.status}` };
-}
-
-return { valid: true, codeData };
-
-}
-
 app.get("/", (req, res) => {res.send("ProjectB Bot Alive");});
 
 app.get("/login", (req, res) => {
